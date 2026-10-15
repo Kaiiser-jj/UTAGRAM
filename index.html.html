@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTAGRAM</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .bg-ut-gradient {
+            background: linear-gradient(135deg, #1d4ed8 0%, #dc2626 100%);
+        }
+        .text-ut-gradient {
+            background: linear-gradient(135deg, #2563eb, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div id="app" class="flex-1 flex items-center justify-center p-4">
+        <!-- El contenido dinámico (Login, Registro o Feed) se inyecta aquí -->
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="py-4 text-center text-xs text-gray-400">
+        UTAGRAM &copy; 2026 &bull; Disponible 24/7 en la Nube
+    </footer>
+
+    <script>
+        // --- GESTIÓN DE BASE DE DATOS LOCAL (24/7 en el navegador / cliente) ---
+        function getDB() {
+            const users = JSON.parse(localStorage.getItem('utagram_users')) || [];
+            const session = JSON.parse(localStorage.getItem('utagram_session')) || null;
+            const posts = JSON.parse(localStorage.getItem('utagram_posts')) || [
+                { id: 1, user: 'utadming', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150', image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=600', caption: 'Bienvenidos oficialmente a UTAGRAM 🚀 azul y rojo puro talento.', likes: 12, liked: false }
+            ];
+            return { users, session, posts };
+        }
+
+        function saveDB(users, session, posts) {
+            if (users) localStorage.setItem('utagram_users', JSON.stringify(users));
+            if (session !== undefined) localStorage.setItem('utagram_session', JSON.stringify(session));
+            if (posts) localStorage.setItem('utagram_posts', JSON.stringify(posts));
+        }
+
+        // --- ENRUTADOR / RENDERIZADOR ---
+        function render() {
+            const { session } = getDB();
+            const app = document.getElementById('app');
+            
+            if (!session) {
+                // Mostrar pantalla de Autenticación por defecto (Login)
+                renderAuth('login');
+            } else {
+                // Mostrar la aplicación principal (Feed)
+                renderFeed();
+            }
+        }
+
+        // --- PANTALLAS DE AUTENTICACIÓN (LOGIN / REGISTRO) ---
+        function renderAuth(tab) {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="w-full max-w-md bg-white border border-gray-200 shadow-xl rounded-2xl p-8 transition-all duration-300">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl font-black tracking-wider text-ut-gradient uppercase mb-1">UTAGRAM</h1>
+                        <p class="text-sm text-gray-500">Conecta con tu comunidad universitaria</p>
+                    </div>
+
+                    <!-- Pestañas -->
+                    <div class="flex border-b border-gray-200 mb-6 font-semibold text-sm">
+                        <button onclick="renderAuth('login')" class="flex-1 pb-3 text-center transition ${tab === 'login' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-400 hover:text-gray-600'}">Iniciar Sesión</button>
+                        <button onclick="renderAuth('register')" class="flex-1 pb-3 text-center transition ${tab === 'register' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-400 hover:text-gray-600'}">Registrarse</button>
+                    </div>
+
+                    <div id="auth-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg text-center font-medium"></div>
+
+                    ${tab === 'login' ? getLoginFormHTML() : getRegisterFormHTML()}
+                </div>
+            `;
+        }
+
+        function getLoginFormHTML() {
+            return `
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Usuario o Correo</label>
+                        <input type="text" id="login-user" required class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Contraseña</label>
+                        <input type="password" id="login-pass" required class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-95 text-sm uppercase tracking-wider">Entrar</button>
+                </form>
+            `;
+        }
+
+        function getRegisterFormHTML() {
+            return `
+                <form onsubmit="handleRegister(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Nombre Completo</label>
+                        <input type="text" id="reg-name" required class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Nombre de Usuario</label>
+                        <input type="text" id="reg-user" required class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Contraseña</label>
+                        <input type="password" id="reg-pass" required class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition transform active:scale-95 text-sm uppercase tracking-wider">Crear Cuenta</button>
+                </form>
+            `;
+        }
+
+        // --- ACCIONES DE AUTENTICACIÓN ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value;
+            const { users } = getDB();
+
+            const found = users.find(u => u.username === identifier || u.name.toLowerCase() === identifier.toLowerCase());
+
+            if (!found || found.pass !== pass) {
+                showAuthError("Usuario o contraseña incorrectos.");
+                return;
+            }
+
+            saveDB(null, found, null);
+            render();
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const username = document.getElementById('reg-user').value.trim().toLowerCase();
+            const pass = document.getElementById('reg-pass').value;
+            const { users } = getDB();
+
+            if (users.some(u => u.username === username)) {
+                showAuthError("El nombre de usuario ya está en uso.");
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                username,
+                pass,
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
+            };
+
+            users.push(newUser);
+            saveDB(users, newUser, null);
+            render();
+        }
+
+        function showAuthError(msg) {
+            const errBox = document.getElementById('auth-error');
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+        }
+
+        function logout() {
+            saveDB(null, null, null);
+            render();
+        }
+
+        // --- PANTALLA PRINCIPAL / FEED ---
+        function renderFeed() {
+            const { session, posts } = getDB();
+            const app = document.getElementById('app');
+
+            app.className = "w-full max-w-2xl mx-auto flex flex-col justify-start p-2 sm:p-4";
+            app.innerHTML = `
+                <!-- Barra Superior -->
+                <header class="bg-white border border-gray-200 rounded-2xl p-4 mb-4 flex items-center justify-between shadow-sm">
+                    <h1 class="text-2xl font-black text-ut-gradient tracking-wider">UTAGRAM</h1>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <img src="${session.avatar}" class="w-9 h-9 rounded-full border-2 border-blue-600 object-cover">
+                            <span class="text-sm font-bold text-gray-700 hidden sm:inline">@${session.username}</span>
+                        </div>
+                        <button onclick="logout()" class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-power-off"></i> Salir
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Crear Publicación -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-4 shadow-sm">
+                    <form onsubmit="handleCreatePost(event)" class="space-y-3">
+                        <textarea id="post-caption" placeholder="¿Qué estás pensando o compartiendo hoy?" rows="2" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm resize-none"></textarea>
+                        <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                            <input type="text" id="post-image" placeholder="URL de imagen (opcional, ej. Unsplash)" class="w-full sm:flex-1 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 to-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md hover:opacity-90 transition">Publicar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Feed de Publicaciones -->
+                <div class="space-y-4" id="posts-container">
+                    ${posts.length === 0 ? '<p class="text-center text-gray-400 py-10">No hay publicaciones aún. ¡Sé el primero en publicar!</p>' : posts.map(post => `
+                        <article class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                            <!-- Cabecera del Post -->
+                            <div class="p-3.5 flex items-center gap-3 border-b border-gray-100">
+                                <img src="\${post.avatar}" class="w-9 h-9 rounded-full border border-gray-200 object-cover">
+                                <span class="text-sm font-bold text-gray-800">@\${post.user}</span>
+                            </div>
+                            <!-- Imagen del Post (Si existe) -->
+                            \${post.image ? `<img src="${post.image}" class="w-full max-h-96 object-cover bg-gray-100">` : ''}
+                            <!-- Contenido del Post -->
+                            <div class="p-4 space-y-2">
+                                <div class="flex items-center gap-4">
+                                    <button onclick="toggleLike(\${post.id})" class="text-lg transition transform active:scale-125 \${post.liked ? 'text-red-600' : 'text-gray-400 hover:text-gray-600'}">
+                                        <i class="\${post.liked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                                    </button>
+                                    <span class="text-xs font-bold text-gray-700">\${post.likes} Me gusta</span>
+                                </div>
+                                <p class="text-sm text-gray-700"><strong class="text-gray-900">@${post.user}</strong>${post.caption}</p>
+                            </div>
+                        </article>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function handleCreatePost(e) {
+            e.preventDefault();
+            const caption = document.getElementById('post-caption').value.trim();
+            const image = document.getElementById('post-image').value.trim();
+            const { session, posts } = getDB();
+
+            if (!caption && !image) return;
+
+            const newPost = {
+                id: Date.now(),
+                user: session.username,
+                avatar: session.avatar,
+                image: image || null,
+                caption: caption,
+                likes: 0,
+                liked: false
+            };
+
+            posts.unshift(newPost);
+            saveDB(null, null, posts);
+            render();
+        }
+
+        function toggleLike(postId) {
+            const { posts } = getDB();
+            const post = posts.find(p => p.id === postId);
+            if (post) {
+                if (post.liked) {
+                    post.likes--;
+                    post.liked = false;
+                } else {
+                    post.likes++;
+                    post.liked = true;
+                }
+                saveDB(null, null, posts);
+                render();
+            }
+        }
+
+        // Inicializar App al cargar la página
+        window.onload = render;
+    </script>
+</body>
+</html>
